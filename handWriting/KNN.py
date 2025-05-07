@@ -5,7 +5,27 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 
+############################################################################################################
 
+def runKNN(kValues: int, data):
+
+    # part 1.1
+    trainingAccuracy = []
+
+    trainingStd = []
+    for x in kValues:
+        output = KNN_Wrapper(data,x,'test')
+        trainingAccuracy.append(output[0])
+        trainingStd.append(output[1])
+
+    trainingAccuracy = np.array(trainingAccuracy)
+    plt.figure()
+    plt.errorbar(kValues, trainingAccuracy, yerr=trainingStd, marker='o', capsize=5, linestyle='-', color='black', ecolor='black')
+    plt.xlabel('Value of k')
+    plt.ylabel('Accuracy of Training Data')
+    plt.show()
+
+############################################################################################################
 
 def normalize(dataset):
 
@@ -106,43 +126,3 @@ def KNN(training_set, dataset, k: int):
     accuracy = round((numCorrect / dataSize),3)
     print(accuracy)
     return accuracy
-
-
-############################################################################################################
-
-if __name__ == "__main__":
-
-    # load the handwritten digits dataset
-    digits = datasets.load_digits(return_X_y=True)
-    digits_dataset_x = digits[0]
-    digits_dataset_y = digits[1]
-    N = len(digits_dataset_x)
-
-    # Prints the 64 attributes of a random digit, its class and then shows the digit on the screen
-    # digit_to_show = np.random.choice(range(N), 1)[0]
-    # print("Attributes:", digits_dataset_x[digit_to_show])
-    # print("Class:", digits_dataset_y[digit_to_show])
-
-
-    data = np.hstack((digits_dataset_x, digits_dataset_y.reshape(-1, 1)))
-    kValues = [5]#[x for x in range(1, 51, 2)] # k = 5 is the best
-
-
-    # part 1.1
-    trainingAccuracy = []
-
-    trainingStd = []
-    for x in kValues:
-        output = KNN_Wrapper(data,x,'test')
-        trainingAccuracy.append(output[0])
-        trainingStd.append(output[1])
-
-    trainingAccuracy = np.array(trainingAccuracy)
-    print(trainingAccuracy)
-
-
-    plt.figure()
-    plt.errorbar(kValues, trainingAccuracy, yerr=trainingStd, marker='o', capsize=5, linestyle='-', color='black', ecolor='black')
-    plt.xlabel('Value of k')
-    plt.ylabel('Accuracy of Training Data')
-    plt.show()
