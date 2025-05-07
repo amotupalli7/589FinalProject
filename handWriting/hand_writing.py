@@ -1,18 +1,9 @@
 from sklearn import datasets 
-from sklearn.utils import shuffle
-from sklearn.model_selection import train_test_split
 import numpy as np
-import matplotlib.pyplot as plt
-from collections import Counter
+from sklearn.preprocessing import OneHotEncoder
 from KNN import *
-
-############################################################################################################
-
-def neuralNetwork():
-
-
-    pass
-
+from NN import *
+import pandas as pd
 
 ############################################################################################################
 
@@ -27,14 +18,26 @@ if __name__ == "__main__":
     # Show dataset
     # digit_to_show = np.random.choice(range(N), 1)[0]
     # print("Attributes:", digits_dataset_x[digit_to_show])
-    # print("Class:", digits_dataset_y[digit_to_show])
+    # print("Class:", digits_dataset_y[digit_to_show]) 
 
 
-    data = np.hstack((digits_dataset_x, digits_dataset_y.reshape(-1, 1)))
 
 
     # RUN KNN on dataset
-    kValues = [5]#[x for x in range(1, 51, 2)] # k = 5 is the best
-    runKNN(kValues,data)
+        # kValues = [5]#[x for x in range(1, 51, 2)] # k = 5 is the best
+        # runKNN(kValues,data)
+
+    # RUN Neural Nets on dataset
+
+        # load dataset to csv
+        # loadData(digits_dataset_x,digits_dataset_y)
+
+    # preprocess data
+    runNeuralNetwork("data/handwriting.csv")
+    # x,y,inputSize,outputSize = preprocess("data/handwriting.csv",False)
+    # print(preprocess("data/handwriting.csv",False))
+
+
+
 
 
