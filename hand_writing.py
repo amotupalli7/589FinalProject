@@ -7,6 +7,15 @@ from collections import Counter
 
 
 
+def normalize(dataset):
+
+    min = dataset.min(axis=0)
+    max = dataset.max(axis=0)
+    denom = max - min
+    denom[denom == 0] = 1 
+    dataset = (dataset - min) / denom
+    return dataset
+
 # KNN
 ############################################################################################################
 
@@ -25,7 +34,7 @@ def KNN_Wrapper(data, k: int, train_or_test: str):
         # normalize only x columns
         features = shuffledData[:, :-1]
         labels = shuffledData[:, -1].reshape(-1, 1)
-        features = (features - features.min(axis=0)) / (features.max(axis=0) - features.min(axis=0)) # Normalize features only
+        features = normalize(features)
         normData = np.hstack((features, labels))
 
         # split into training and testing
@@ -79,7 +88,6 @@ def KNN(training_set, dataset, k: int):
         # majority vote
 
         # find the average of the label
-        print(firstK)
         neighbor_labels = firstK[:, -1].astype(int)
         label_counts = Counter(neighbor_labels)
         finalLabel = label_counts.most_common(1)[0][0]
@@ -96,6 +104,7 @@ def KNN(training_set, dataset, k: int):
     
     
     accuracy = round((numCorrect / dataSize),3)
+    print(accuracy)
     return accuracy
 
 
@@ -105,20 +114,18 @@ if __name__ == "__main__":
 
     # load the handwritten digits dataset
     digits = datasets.load_digits(return_X_y=True)
-    digits_dataset_X = digits[0]
+    digits_dataset_x = digits[0]
     digits_dataset_y = digits[1]
-    N = len(digits_dataset_X)
+    N = len(digits_dataset_x)
 
     # Prints the 64 attributes of a random digit, its class and then shows the digit on the screen
-    digit_to_show = np.random.choice(range(N), 1)[0]
-    print("Attributes:", digits_dataset_X[digit_to_show])
-    print("Class:", digits_dataset_y[digit_to_show])
+    # digit_to_show = np.random.choice(range(N), 1)[0]
+    # print("Attributes:", digits_dataset_x[digit_to_show])
+    # print("Class:", digits_dataset_y[digit_to_show])
 
 
-    data = np.hstack((digits_dataset_X, digits_dataset_y.reshape(-1, 1)))
-
-
-    kValues = [5]#[x for x in range(1, 51, 2)]
+    data = np.hstack((digits_dataset_x, digits_dataset_y.reshape(-1, 1)))
+    kValues = [5]#[x for x in range(1, 51, 2)] # k = 5 is the best
 
 
     # part 1.1
@@ -126,8 +133,9 @@ if __name__ == "__main__":
 
     trainingStd = []
     for x in kValues:
-        trainingAccuracy.append(KNN_Wrapper(data,x,'train')[0])
-        trainingStd.append(KNN_Wrapper(data,x,'train')[1])
+        output = KNN_Wrapper(data,x,'test')
+        trainingAccuracy.append(output[0])
+        trainingStd.append(output[1])
 
     trainingAccuracy = np.array(trainingAccuracy)
     print(trainingAccuracy)
