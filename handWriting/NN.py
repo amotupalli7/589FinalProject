@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from pandas import *
 from sklearn.preprocessing import OneHotEncoder
+from KNN import normalize
 
 ########################################################################################
 def loadData(digits_dataset_x,digits_dataset_y):
@@ -48,14 +49,14 @@ def preprocess(fileName, hasCategorical: bool = False):
         XCatEncoded_df = pd.DataFrame(XCatEncoded, columns=encoder.get_feature_names_out(cat_cols))
         
         XNum = X[num_cols]
-        XNumNormalized = (XNum - XNum.min(axis=0)) / (XNum.max(axis=0) - XNum.min(axis=0)) # normalize
+        XNumNormalized = normalize(XNum)#(XNum - XNum.min(axis=0)) / (XNum.max(axis=0) - XNum.min(axis=0)) # normalize
         XNumNormalized_df = pd.DataFrame(XNumNormalized, columns=num_cols)
         
         
         XFinal = pd.concat([XNumNormalized_df.reset_index(drop=True), XCatEncoded_df], axis=1)
     else:
         
-        XNormalized = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
+        XNormalized = normalize(X)#(X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
         XFinal = pd.DataFrame(XNormalized, columns=X.columns)
 
     inputLayerSize = XFinal.shape[1]
@@ -103,7 +104,6 @@ def getScores(trueLabels, predictedLabels):
     f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
 
     return [accuracy, precision, recall, f1]
-
 
 
 ########################################################################################
@@ -273,7 +273,7 @@ def updateWeight(thetaList, gradients, alpha):
     return updatedTheta
 
 #########################################################################
-def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,thetaList,lamb,alpha,XTest,yTest):
+def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,thetaList,lamb,alpha):#,XTest,yTest):
 
     inputArr = inputValues.to_numpy()
     expectedArr = expectedValues.to_numpy()
@@ -330,7 +330,7 @@ def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,the
 
             # update weights with new theta
             currentTheta = updateWeight(currentTheta,regGradients,alpha)
-            # print(f"\n{currentTheta}")
+            # print(f"\n{currentTheta[-1]}")
 
             # call forward propogation
 
@@ -355,16 +355,42 @@ def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,the
 
 def outputLabel(activations):
 
-    finalLabel = activations[-1]
-    return 0 if finalLabel <= 0.5 else 1
+    # finalLabel = activations[-1]
+    return np.argmax(activations[-1])
 
 #########################################################################
 
 
 def runNeuralNetwork(dataFile):
     # TODO work here
+    hiddenLayerStructure = [10]
+    alpha = 0.1
+    lamb = 0.03
 
     inputValues, expectedValues,inputLayerSize,outputLayerSize = preprocess(dataFile)
-    neuronStructure, thetaList = establishNetwork(inputLayerSize,outputLayerSize,[1])
-    print(neuronStructure)
+    neuronStructure, thetaList = establishNetwork(inputLayerSize,outputLayerSize,hiddenLayerStructure)
+
+    xTrain = inputValues#.to_numpy()
+    yTrain = expectedValues#.to_numpy()
+
+
+    finaltheta,_,_ = trainNeuralNet(xTrain,yTrain,inputLayerSize,neuronStructure,thetaList,lamb,alpha)#,XTest,yTest)
+
+    xTest = xTrain.to_numpy()
+    yTest = yTrain.to_numpy()
+
+    testingLabels = []
+    for x,y in zip(xTest,yTest):
+        finalActivations,_ = forwardPropInstance(neuronStructure,finaltheta,x)
+        finalLabel = outputLabel(finalActivations)
+        testingLabels.append(finalLabel)
+
+    accuracies = []
+    fScores = []
+    scores = getScores(yTrain,testingLabels)
+    accuracies.append(scores[0])
+    fScores.append(scores[1])
+
+    print(accuracies)
+    print(fScores)
 
