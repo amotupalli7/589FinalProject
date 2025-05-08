@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
-#----------------------------------------------------------------------------
-#RANDOM FOREST CLASSIFIER
+import matplotlib.pyplot as plt
+
 #original entropy 
 def entropy_calc(entropy_data):
     count_outcomes = entropy_data.value_counts()
@@ -395,71 +395,58 @@ def evaluate_random_forest(X_data, Y_data, ntree, k, **params):
         np.mean(fold_f1s)
     )
 #----------------------------------------------------------------------------
-#KNN CLASSIFIER
-import numpy as np
-from heapq import nsmallest
 
-def classify(testing_point, training_X, training_Y, k):
-    #use a max heap to find the k nearest neighbors using the euclidean distance helper function 
-    #add these k nearest points to an array and return 
-    #figure out whether benign or malignant is majority 
-
-    training_X_np = training_X.to_numpy()
-    training_Y_np = training_Y.to_numpy()
-    test_point_np = testing_point.to_numpy()
-
-    euc_distances = np.sqrt(np.sum(np.square(training_X_np - test_point_np), axis=1))
-    pairs = np.column_stack((euc_distances,training_Y_np))
-
-    k_nearest_neighbors = nsmallest(k, pairs, key=lambda x: x[0])
-
-    #get the k_nearest_classifications(the second part of the column)
-    k_nearest_classifications = np.array(k_nearest_neighbors)[:, 1]
-    
-    benign = np.count_nonzero(k_nearest_classifications == 0)
-    malignant = np.count_nonzero(k_nearest_classifications == 1)
-
-    majority = 1 if malignant > benign else 0
-    return majority
-
-def accuracy(X, Y, X_train, Y_train, k):
-    correctly_classified = 0
-    for i in range(len(X)):
-        classification = classify(X.iloc[i], X_train, Y_train,k)
-        if(classification == Y.iloc[i]):
-            correctly_classified += 1
-
-    return (correctly_classified / len(X)) 
-
-#----------------------------------------------------------------------------
 from sklearn.model_selection import train_test_split
+from itertools import product
 
 if __name__ == "__main__":
 
-    df = pd.read_csv("data/parkinsons.csv")
+    df = pd.read_csv("../data/parkinsons.csv")
     X = df.drop(columns=['Diagnosis'])
     Y = df['Diagnosis']
 
-    #normalize for knn
-    min_value = X.min()
-    max_value = X.max()
-    X = (X-min_value) / (max_value-min_value)
+    ntree_values = [5, 10, 20, 30, 40, 50, 60]
 
-    # results = evaluate_random_forest(X, Y, ntree=50, k=10, minimal_size_for_split=5, min_gain=0.01, max_depth=10)
+    accuracy_arr = []
+    f1_arr = []
+
+    results = []
+
+    for ntree in ntree_values:
+        accuracy, precision, recall, f1 = evaluate_random_forest(X, Y, ntree=ntree, k=10, minimal_size_for_split=3, min_gain=0.01, max_depth=10)
+        results.append((ntree, accuracy, f1))
+        accuracy_arr.append(accuracy)
+        f1_arr.append(f1)
+
+    df_results = pd.DataFrame(results)
+    print(df_results)
+
+    #plot ntree vs accuracy
+    plt.figure()
+    plt.plot(ntree_values, accuracy_arr, marker='o')
+    plt.title("Accuracy vs. ntree for Parkinsons Dataset")
+    plt.xlabel("Number of Trees (ntree)")
+    plt.ylabel("Accuracy")
+    plt.grid(True)
+    plt.show()
+
+    #plot ntree vs f1
+    plt.figure()
+    plt.plot(ntree_values, f1_arr, marker='o')
+    plt.title("F1 Score vs. ntree for Parkinsons Dataset")
+    plt.xlabel("Number of Trees (ntree)")
+    plt.ylabel("F1 Score")
+    plt.grid(True)
+    plt.show()
+
+
+    # results = evaluate_random_forest(X, Y, ntree=50, k=10, minimal_size_for_split=3, min_gain=0.01, max_depth=10)
 
     # accuracy, precision, recall, f1 = results
     # print(f"Accuracy: {accuracy:.4f}")
     # print(f"Precision: {precision:.4f}")
     # print(f"Recall: {recall:.4f}")
     # print(f"F1 Score: {f1:.4f}")
-
-    # split
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-
-    # Evaluate accuracy with k = 51
-    k = 30
-    acc = accuracy(X_test, Y_test, X_train, Y_train, k)
-    print(f"Test Accuracy with k = {k}: {acc:.4f}")
 
 
 
