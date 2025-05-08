@@ -21,11 +21,11 @@ if __name__ == "__main__":
     # print("Class:", digits_dataset_y[digit_to_show]) 
 
 
-
+    data = pd.read_csv("data/handwriting.csv").to_numpy()
 
     # RUN KNN on dataset
-        # kValues = [5]#[x for x in range(1, 51, 2)] # k = 5 is the best
-        # runKNN(kValues,data)
+    kValues = [5]#[x for x in range(1, 51, 2)] # k = 5 is the best
+    runKNN(kValues,data)
 
     # RUN Neural Nets on dataset
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
         # loadData(digits_dataset_x,digits_dataset_y)
 
     # preprocess data
-    runNeuralNetwork("data/handwriting.csv")
+    # runNeuralNetwork("data/handwriting.csv")
     # x,y,inputSize,outputSize = preprocess("data/handwriting.csv",False)
     # print(preprocess("data/handwriting.csv",False))
 
