@@ -52,7 +52,9 @@ def knn(X, Y, num_k):
         results.append({
             'k': k,
             'Accuracy': round(np.mean(accuracies), 4),
-            'F1 Score': round(np.mean(f1_scores), 4)
+            'F1 Score': round(np.mean(f1_scores), 4),
+            'Accuracy Std': round(np.std(accuracies), 4),
+            'F1 Std': round(np.std(f1_scores), 4)
         })
     return results
 
@@ -74,6 +76,38 @@ if __name__ == "__main__":
     results = knn(X, Y, values)
     df_results = pd.DataFrame(results)
     print(df_results)
+
+    plt.errorbar(
+        df_results["k"],
+        df_results["Accuracy"],
+        yerr=df_results["Accuracy Std"],
+        fmt='-o',
+        capsize=3,
+        label='Accuracy'
+    )
+    plt.title("k-NN Test Accuracy (Parkinson’s Dataset)")
+    plt.xlabel("k (Number of Neighbors)")
+    plt.ylabel("Accuracy")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+
+    # Plot F1 Score
+    plt.errorbar(
+        df_results["k"],
+        df_results["F1 Score"],
+        yerr=df_results["F1 Std"],
+        fmt='-s',
+        capsize=3,
+        label='F1 Score'
+    )
+    plt.title("k-NN F1 Score (Parkinson’s Dataset)")
+    plt.xlabel("k (Number of Neighbors)")
+    plt.ylabel("F1 Score")
+    plt.grid(True)
+    plt.legend()
+    plt.show()
+
 
 
 
