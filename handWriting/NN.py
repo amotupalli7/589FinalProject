@@ -382,6 +382,7 @@ def runNeuralNetwork(dataFile):
         
         # get scores and add to final labels
         scores = getScores(yTest,testingLabels)
+        print(scores)
         accuracies.append(scores[0])
         fScores.append(scores[1])
 

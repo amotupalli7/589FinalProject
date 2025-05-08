@@ -1,32 +1,66 @@
 from sklearn import datasets 
 import os,sys
+import numpy as np
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
-import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
+import pandas as pd
+import numpy as np
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'utils')))
-from helper import *
+from helper import getScores
 
 ############################################################################################################
+# takes in list of kValues and a dataframe
+def runKNN(kValues, data, numFolds):
 
-def runKNN(kValues: int, data):
+
+    # create folds
+    folds = createFolds(data,numFolds)
+
 
     # part 1.1
-    trainingAccuracy = []
+    accuracies = []
+    accuracies_std = []
+    fScores = []
+    fScores_std = []
 
-    trainingStd = []
-    for x in kValues:
-        output = KNN_Wrapper(data,x,'test')
-        trainingAccuracy.append(output[0])
-        trainingStd.append(output[1])
-        
 
-    trainingAccuracy = np.array(trainingAccuracy)
+
+
+    for k in kValues: # for each k closest neighbors
+
+        # run KNN 
+        output = KNN_Wrapper(folds,k)
+        accuracies.append(output[0])
+        accuracies_std.append(output[1])
+        fScores.append(output[2])
+        fScores_std.append(output[3])
+
+    
+    # # Write results to CSV
+    # df = pd.DataFrame({
+    #     'Accuracy': accuracies,
+    #     'F1 Score': fScores
+    # })
+
+
+    # df.to_csv("handwriting_KNN.csv", index=False)
+    # exit()
+
+    accuracies = np.array(accuracies)
     plt.figure()
-    plt.errorbar(kValues, trainingAccuracy, yerr=trainingStd, marker='o', capsize=5, linestyle='-', color='black', ecolor='black')
+    plt.title("k-NN Test Accuracy (Handwriting Dataset)")
+    plt.errorbar(kValues, accuracies, yerr=accuracies_std, marker='o', capsize=5, linestyle='-')
     plt.xlabel('Value of k')
-    plt.ylabel('Accuracy of Training Data')
+    plt.ylabel('Accuracy')
+    plt.show()
+
+    plt.figure()
+    plt.title("k-NN F1 Score (Handwriting Dataset)")
+    plt.errorbar(kValues, fScores, yerr=fScores_std, marker='o', capsize=5, linestyle='-')
+    plt.xlabel('Value of k')
+    plt.ylabel('F1 Score')
     plt.show()
 
 ############################################################################################################
@@ -40,43 +74,76 @@ def normalize(dataset):
     dataset = (dataset - min) / denom
     return dataset
 
-# KNN
+########################################################################
+def createFolds(data, numFolds):
+
+    # Combine input and labels for stratification
+    # full_df = pd.concat([data, labels], axis=1)
+    full_df = data#pd.DataFrame(data)
+    label_col = 'label'
+    classLabels = full_df[label_col].unique()
+    folds = []
+    # Prepare stratified folds
+    remainingSubsets = {label: full_df[full_df[label_col] == label].copy() for label in classLabels}
+    classProportions = {label: len(remainingSubsets[label]) / len(full_df) for label in classLabels}
+    foldSize = len(full_df) // numFolds
+    remainder = len(full_df) % numFolds
+
+    for i in range(numFolds):
+        currFold = []
+        currFoldSize = foldSize + (1 if i < remainder else 0)
+        for l in classLabels:
+            subset = remainingSubsets[l]
+            size = min(int(currFoldSize * classProportions[l]), len(subset))
+            sample = subset.sample(n=size)
+            currFold.append(sample)
+            remainingSubsets[l].drop(sample.index, inplace=True)
+        folds.append(pd.concat(currFold))     
+
+    return folds
+
 ############################################################################################################
 
-def KNN_Wrapper(data, k: int, train_or_test: str):
-    if train_or_test not in ['train', 'test']:
-        return Exception("please select train or test")
+def KNN_Wrapper(folds, k: int):#, train_or_test: str):
+    # if train_or_test not in ['train', 'test']:
+    #     return Exception("please select train or test")
 
+    # create k folds here and run on each 
 
     
     accuracies = []
     fScores = []
-    for x in range(20):
+    numFolds = len(folds)
+    for i in range(numFolds):
 
-        shuffledData = shuffle(data)
+        # create testing set and training set
+        testingSet = folds[i].to_numpy()
+        trainingSet = pd.concat([folds[j] for j in range(numFolds) if j != i]).to_numpy() # all other folds
+
+
+
 
         # normalize only x columns
-        features = shuffledData[:, :-1]
-        labels = shuffledData[:, -1].reshape(-1, 1)
-        features = normalize(features)
-        normData = np.hstack((features, labels))
+        # features = #shuffledData[:, :-1]
+        # labels = #shuffledData[:, -1].reshape(-1, 1)
+        # features = normalize(features)
+        # normData = np.hstack((features, labels))
 
-        # split into training and testing
-        trainingSet, testingSet = train_test_split(normData,train_size=0.8,test_size=0.20)
+        # # split into training and testing
+        # trainingSet, testingSet = train_test_split(normData,train_size=0.8,test_size=0.20)
 
-        if train_or_test == "train":
+        # if train_or_test == "train":
             # call k-nn on training
-            trainedLabels = KNN(trainingSet,trainingSet,k)
-            actualLabels = trainingSet[:,-1]
-        else:
-            # call k-nn on testing
-            trainedLabels = KNN(trainingSet,testingSet,k)
-            actualLabels = testingSet[:,-1]
+        trainedLabels = KNN(trainingSet,testingSet,k)
+        actualLabels = testingSet[:,-1]
+        # else:
+        #     # call k-nn on testing
+        #     trainedLabels = KNN(trainingSet,testingSet,k)
+        #     actualLabels = testingSet[:,-1]
 
         # calculate scores
 
         scores = getScores(actualLabels,trainedLabels)
-        print(scores)
 
 
         accuracies.append(scores[0])

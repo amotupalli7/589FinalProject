@@ -14,12 +14,13 @@ if __name__ == "__main__":
     digits_dataset_x = digits[0]
     digits_dataset_y = digits[1]
     N = len(digits_dataset_x)
+    folds = 10
 
     # convert the dataset to csv
 
     # df = pd.DataFrame(digits_dataset_x)
     # df['label'] = digits_dataset_y
-    # df.to_csv("data/handwriting2.csv")
+    # df.to_csv("data/handwriting2.csv",index=False)
     # exit()
 
     # Show dataset
@@ -28,11 +29,11 @@ if __name__ == "__main__":
     # print("Class:", digits_dataset_y[digit_to_show]) 
 
 
-    data = pd.read_csv("data/handwriting2.csv").to_numpy()
+    # data = pd.read_csv("data/handwriting2.csv")
 
     # RUN KNN on dataset
-    kValues = [5]#[x for x in range(1, 51, 2)] # k = 5 is the best
-    runKNN(kValues,data)
+        # kValues = [x for x in range(1, 51, 2)] # k = 5 is the best
+        # runKNN(kValues,data,folds)
 
     # RUN Neural Nets on dataset
 
@@ -40,7 +41,7 @@ if __name__ == "__main__":
         # loadData(digits_dataset_x,digits_dataset_y)
 
     # preprocess data
-    # runNeuralNetwork("data/handwriting.csv")
+    runNeuralNetwork("data/handwriting.csv")
     # x,y,inputSize,outputSize = preprocess("data/handwriting.csv",False)
     # print(preprocess("data/handwriting.csv",False))
 
