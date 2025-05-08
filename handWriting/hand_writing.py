@@ -15,13 +15,20 @@ if __name__ == "__main__":
     digits_dataset_y = digits[1]
     N = len(digits_dataset_x)
 
+    # convert the dataset to csv
+
+    # df = pd.DataFrame(digits_dataset_x)
+    # df['label'] = digits_dataset_y
+    # df.to_csv("data/handwriting2.csv")
+    # exit()
+
     # Show dataset
     # digit_to_show = np.random.choice(range(N), 1)[0]
     # print("Attributes:", digits_dataset_x[digit_to_show])
     # print("Class:", digits_dataset_y[digit_to_show]) 
 
 
-    data = pd.read_csv("data/handwriting.csv").to_numpy()
+    data = pd.read_csv("data/handwriting2.csv").to_numpy()
 
     # RUN KNN on dataset
     kValues = [5]#[x for x in range(1, 51, 2)] # k = 5 is the best

@@ -47,9 +47,8 @@ def KNN_Wrapper(data, k: int, train_or_test: str):
     if train_or_test not in ['train', 'test']:
         return Exception("please select train or test")
 
-    # shuffle the data
 
-    # normData = shuffledData
+    
     accuracies = []
     fScores = []
     for x in range(20):
@@ -77,6 +76,7 @@ def KNN_Wrapper(data, k: int, train_or_test: str):
         # calculate scores
 
         scores = getScores(actualLabels,trainedLabels)
+        print(scores)
 
 
         accuracies.append(scores[0])

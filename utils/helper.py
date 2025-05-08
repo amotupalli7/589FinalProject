@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 ########################################################################################
 def getScores(trueLabels, predictedLabels):
@@ -38,4 +39,33 @@ def getScores(trueLabels, predictedLabels):
     return [accuracy, np.mean(f1Scores)]
 
 
-########################################################################################
+########################################################################
+def createFolds(data, labels, k):
+
+    # Combine input and labels for stratification
+    labels_class = labels.idxmax(axis=1).str.extract('(\d+)').astype(int)
+    labels_class.columns = ['label']
+
+    full_df = pd.concat([data, labels_class], axis=1)
+    label_col = 'label'
+    classLabels = full_df[label_col].unique()
+    folds = []
+
+    # Prepare stratified folds
+    remainingSubsets = {label: full_df[full_df[label_col] == label].copy() for label in classLabels}
+    classProportions = {label: len(remainingSubsets[label]) / len(full_df) for label in classLabels}
+    foldSize = len(full_df) // k
+    remainder = len(full_df) % k
+
+    for i in range(k):
+        currFold = []
+        currFoldSize = foldSize + (1 if i < remainder else 0)
+        for l in classLabels:
+            subset = remainingSubsets[l]
+            size = min(int(currFoldSize * classProportions[l]), len(subset))
+            sample = subset.sample(n=size)
+            currFold.append(sample)
+            remainingSubsets[l].drop(sample.index, inplace=True)
+        folds.append(pd.concat(currFold))     
+
+    return folds
