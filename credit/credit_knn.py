@@ -106,7 +106,6 @@ if __name__ == "__main__":
     plt.legend()
     plt.show()
 
-    # Plot F1 Score
     plt.errorbar(
         df_results["k"],
         df_results["F1 Score"],
