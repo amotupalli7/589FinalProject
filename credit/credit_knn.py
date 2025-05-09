@@ -70,7 +70,6 @@ def knn(X, Y, num_k):
 #------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-   # Load and preprocess data
     df = pd.read_csv("../data/credit_approval.csv")
     X = df.drop(columns=["label"])
     Y = df["label"]
