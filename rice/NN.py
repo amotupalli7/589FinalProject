@@ -1,33 +1,8 @@
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
-from pandas import *
-import os,sys
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
-from KNN import normalize
-import matplotlib.pyplot as plt
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'utils')))
-from helper import *
-
-########################################################################################
-def loadData(digits_dataset_x,digits_dataset_y):
-    # normalize the X values
-    print(digits_dataset_x)
-    print(digits_dataset_y)
-    encoder = OneHotEncoder(sparse_output=False, categories='auto')
-    Y_encoded = encoder.fit_transform(digits_dataset_y.reshape(-1, 1))
-    print(Y_encoded)
-
-    data = np.hstack((digits_dataset_x, Y_encoded))
-    print(data)
-
-    # Create column names: x0, x1, ..., xN, y
-    num_features = digits_dataset_x.shape[1]
-    num_classes = Y_encoded.shape[1]
-    column_names = [f"x{i}" for i in range(num_features)] + [f"y{i}" for i in range(num_classes)]
-    # Create DataFrame with custom headers
-    df = pd.DataFrame(data, columns=column_names)
-    df.to_csv("data/handwriting.csv",index=False)
 
 
 ########################################################################################
@@ -35,38 +10,14 @@ def preprocess(fileName, hasCategorical: bool = False):
 
     df = pd.read_csv(fileName) 
 
-    # X = df.iloc[:, :-1]
-    # y = df.iloc[:, -1]
+    X = df.iloc[:, :-1]
+    y = df.iloc[:, -1]
 
-    # Select feature columns (those starting with 'x')
-    X = df.loc[:, df.columns.str.startswith('x')]
-
-    # Select label columns (those starting with 'y')
-    y = df.loc[:, df.columns.str.startswith('y')]
-
-    if hasCategorical:
-        cat_cols = [col for col in X.columns if col.endswith('_cat')]
-        num_cols = [col for col in X.columns if col.endswith('_num')]
-
-       
-        encoder = OneHotEncoder(sparse_output=False, drop='first') # use one-hot encoding
-        XCatEncoded = encoder.fit_transform(X[cat_cols])
-        XCatEncoded_df = pd.DataFrame(XCatEncoded, columns=encoder.get_feature_names_out(cat_cols))
-        
-        XNum = X[num_cols]
-        XNumNormalized = normalize(XNum)#(XNum - XNum.min(axis=0)) / (XNum.max(axis=0) - XNum.min(axis=0)) # normalize
-        XNumNormalized_df = pd.DataFrame(XNumNormalized, columns=num_cols)
-        
-        
-        XFinal = pd.concat([XNumNormalized_df.reset_index(drop=True), XCatEncoded_df], axis=1)
-    else:
-        
-        XNormalized = normalize(X) #(X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
-        XFinal = pd.DataFrame(XNormalized, columns=X.columns)
+    XNormalized = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
+    XFinal = pd.DataFrame(XNormalized, columns=X.columns)
 
     inputLayerSize = XFinal.shape[1]
-    outputLayerSize = y.shape[1]
-    return XFinal,y,inputLayerSize,outputLayerSize
+    return XFinal,y,inputLayerSize
 
 ########################################################################################
 def intializeTheta(neuronStructure):
@@ -81,17 +32,38 @@ def intializeTheta(neuronStructure):
 
 ########################################################################################
 
-def establishNetwork(intputLayerSize: int, outputLayerSize: int, hiddenLayerStructure):
+def establishNetwork(intputLayerSize: int, hiddenLayerStructure):
 
     neuronStructure = hiddenLayerStructure
     neuronStructure.insert(0,intputLayerSize) # insert input layerSize
-    neuronStructure.append(outputLayerSize) # figure out the output layer size
+    neuronStructure.append(1) # add 1 for output layer since always one label
 
     # initialize the thetas based on the structure
     thetaList = intializeTheta(neuronStructure)
     return neuronStructure,thetaList
 
 
+########################################################################################
+
+def getScores(trueLabels, predictedLabels):
+    trueLabels = np.array(trueLabels)
+    predictedLabels = np.array(predictedLabels)
+
+    TP = np.sum((trueLabels == 1) & (predictedLabels == 1))
+    TN = np.sum((trueLabels == 0) & (predictedLabels == 0))
+    FP = np.sum((trueLabels == 0) & (predictedLabels == 1))
+    FN = np.sum((trueLabels == 1) & (predictedLabels == 0))
+
+    accuracy = (TP + TN) / (TP + TN + FP + FN)
+    precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+    recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+    f1 = (2 * precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+
+    return [accuracy, precision, recall, f1]
+
+
+
+########################################################################################
 
 # given a dataframe returns the prob of havnig a specific label
 def findClassSplit(df):
@@ -101,6 +73,36 @@ def findClassSplit(df):
     return label_prob
 
 ########################################################################################
+def createFolds(data, labels, k):
+
+
+    # Combine input and labels for stratification
+    full_df = pd.concat([data, labels], axis=1)
+    label_col = labels.name
+    classLabels = full_df[label_col].unique()
+    folds = []
+
+    # Prepare stratified folds
+    remainingSubsets = {label: full_df[full_df[label_col] == label].copy() for label in classLabels}
+    classProportions = {label: len(remainingSubsets[label]) / len(full_df) for label in classLabels}
+    foldSize = len(full_df) // k
+    remainder = len(full_df) % k
+
+    for i in range(k):
+        currFold = []
+        currFoldSize = foldSize + (1 if i < remainder else 0)
+        for l in classLabels:
+            subset = remainingSubsets[l]
+            size = min(int(currFoldSize * classProportions[l]), len(subset))
+            sample = subset.sample(n=size)
+            currFold.append(sample)
+            remainingSubsets[l].drop(sample.index, inplace=True)
+        folds.append(pd.concat(currFold))     
+
+    return folds
+
+
+#########################################################################
 def getSigmoid(z):
     return 1 / (1+ np.exp(-z))
 # given neuron structure list, list of thetas, and an instance return (activation_list, final_output_list)
@@ -228,15 +230,16 @@ def updateWeight(thetaList, gradients, alpha):
         updatedTheta.append(new_theta)
     return updatedTheta
 
+
 #########################################################################
-def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,thetaList,lamb,alpha):#XTest,yTest):
+def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,thetaList,lamb,alpha):
+
+
 
     inputArr = inputValues#.to_numpy()
     expectedArr = expectedValues#.to_numpy()
 
     n = len(expectedArr)
-    print(len(inputArr))
-    print(n)
 
     currentTheta = thetaList
     batchSize = 20
@@ -261,6 +264,7 @@ def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,the
 
         # for every instance in batch
             batchGradients = []
+            # TODO update for each batch instead of all instances
             for xi, yi in zip(batchX, batchY):
 
                 # check for stopping criteria
@@ -288,95 +292,41 @@ def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,the
 
             # update weights with new theta
             currentTheta = updateWeight(currentTheta,regGradients,alpha)
-            # print(f"\n{currentTheta[-1]}")
-
-            # call forward propogation
-
-### UNCOMENT HERE FOR J VALUES
-        # errors = []
-        # for x,y in zip(XTest,yTest):
-        #     finalActivations,_ = forwardPropInstance(neuronStructure,currentTheta,x)
-        #     y_pred = finalActivations[-1]
-        #     error = getErrorRegularized(y,y_pred,lamb,thetaList,n)
-        #     errors.append(error)
-        # errors = np.array(errors)
-        # finalError = np.mean(errors)
-        # print(finalError)
-        # J.append(finalError)
 
 
-
-
-    return currentTheta,iterations,J # return final updated weight
+    return currentTheta # return final updated weight
     
 #########################################################################
 
 def outputLabel(activations):
 
-    # finalLabel = activations[-1]
-    return np.argmax(activations[-1])
+    finalLabel = activations[-1]
+    return 0 if finalLabel <= 0.5 else 1
+
 
 #########################################################################
-def runNeuralNetwork(dataFile):
-    # TODO work here
-    hiddenLayerStructure = [16]
-    alpha = 0.01
-    lamb = 0.01
-    k = 3
+def runNN(hiddenLayerStructure,lamb,alpha,k):
 
-    inputValues, expectedValues,inputLayerSize,outputLayerSize = preprocess(dataFile)
-    neuronStructure, thetaList = establishNetwork(inputLayerSize,outputLayerSize,hiddenLayerStructure)
+    inputValues, expectedValues,inputLayerSize = preprocess("data/handwriting.csv")
 
-    # learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,outputLayerSize,thetaList,lamb,alpha)
-    # exit()
-    # xTrain = inputValues#.to_numpy()
-    # yTrain = expectedValues#.to_numpy()
-
-
-    # finaltheta,_,_ = trainNeuralNet(xTrain,yTrain,inputLayerSize,neuronStructure,thetaList,lamb,alpha)#,XTest,yTest)
-
-    # xTest = xTrain.to_numpy()
-    # yTest = yTrain.to_numpy()
-
-    # testingLabels = []
-    # for x,y in zip(xTest,yTest):
-    #     finalActivations,_ = forwardPropInstance(neuronStructure,finaltheta,x)
-    #     finalLabel = outputLabel(finalActivations)
-    #     testingLabels.append(finalLabel)
-
-    # accuracies = []
-    # fScores = []
-    # scores = getScores(yTrain,testingLabels)
-    # accuracies.append(scores[0])
-    # fScores.append(scores[1])
-
-    # print(accuracies)
-    # print(fScores)
-
-
+    neuronStructure,thetaList = establishNetwork(inputLayerSize,hiddenLayerStructure)
     accuracies = []
     fScores = []
     folds = createFolds(inputValues,expectedValues,k)
-
     for i in range(k):
 
         testSet = folds[i] 
         trainingSet = pd.concat([folds[j] for j in range(k) if j != i]) # all other folds
-        
-        encoder = OneHotEncoder(sparse_output=False, categories='auto')
-        XTrain = trainingSet.drop(columns=["label"]).to_numpy()
+
+        XTrain = trainingSet.drop(columns=["label"])
         yTrain = trainingSet["label"]
-        encoder.fit(yTrain.to_numpy().reshape(-1, 1))
-        yTrain = encoder.transform(yTrain.to_numpy().reshape(-1, 1))
         XTest = testSet.drop(columns=["label"]).to_numpy()
         yTest = testSet["label"].to_numpy()
-        yTest = encoder.transform(yTest.reshape(-1, 1))
-
 
 
         # train neural network 
-        finalWeights,iterations,J = trainNeuralNet(XTrain,yTrain,inputLayerSize,neuronStructure,thetaList,lamb,alpha)
-        # evaluate the network 
+        finalWeights = trainNeuralNet(XTrain,yTrain,inputLayerSize,neuronStructure,thetaList,lamb,alpha)
+
         testingLabels = []
         for x,y in zip(XTest,yTest):
             finalActivations,_ = forwardPropInstance(neuronStructure,finalWeights,x)
@@ -389,20 +339,6 @@ def runNeuralNetwork(dataFile):
         accuracies.append(scores[0])
         fScores.append(scores[1])
 
-    # plt.figure(figsize=(10, 6))
-    # plt.plot(iterations, J, marker='o', linestyle='-', label='Cost vs Iteration')
-
-    # plt.xlabel('Iteration')
-    # plt.ylabel('J (Cost)')
-    # plt.title('Network Performance Raisin Dataset')
-    # plt.grid(True)
-    # plt.legend()
-    # plt.tight_layout()
-    # plt.show()
-
-
-
-
 
     accuracies = np.array(accuracies)
     finalAccuracy = np.mean(accuracies)
@@ -410,9 +346,11 @@ def runNeuralNetwork(dataFile):
     finalFScore = np.mean(fScores)
     print(f"Accuracy: {finalAccuracy}")
     print(f"FScore: {finalFScore}")
+#########################################################################
+
 
 #########################################################################
-def learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,outputLayerSize,thetaList,lamb,alpha):
+def learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,thetaList,lamb,alpha):
 
 
     X_train, X_test, Y_train, Y_test = train_test_split(inputValues, expectedValues, test_size=0.2)
@@ -422,7 +360,7 @@ def learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,outp
     Y_test = Y_test.to_numpy()
 
 
-    training_samples = list(range(5, len(X_train) + 1, 100))
+    training_samples = list(range(5, len(X_train) + 1, 300))
     J_arr = []
 
     for sample in training_samples:
@@ -430,7 +368,7 @@ def learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,outp
         Y_sample = Y_train[:sample]
 
         # neuronStructure, thetaList = establishNetwork(inputLayerSize,outputLayerSize,hiddenLayerStructure)
-        finalWeights,iterations,J = trainNeuralNet(X_sample,Y_sample,inputLayerSize,neuronStructure,thetaList,lamb,alpha)
+        finalWeights= trainNeuralNet(X_sample,Y_sample,inputLayerSize,neuronStructure,thetaList,lamb,alpha)
 
         
         errors = []
@@ -438,8 +376,11 @@ def learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,outp
             print(f"y is: {y}")
             # print(finalWeights)
             activations, __ = forwardPropInstance(neuronStructure, finalWeights, x)
-            error = getErrorInstance(y, activations[-1])#getErrorRegularized(y, activations[-1], lamb, finalWeights, len(X_test))
+            error = getErrorInstance(y, activations[-1])
+            #error = getErrorRegularized(y, activations[-1], lamb, finalWeights, len(X_test))
             errors.append(error)
+            print(error)
+            print(len(X_test))
 
         cost = np.mean(errors)
         J_arr.append(cost)
@@ -454,3 +395,19 @@ def learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,outp
     plt.grid(True)
     plt.tight_layout()
     plt.show()
+
+#########################################################################
+def runLearningCurve():
+
+    k = 10
+    hiddenLayerStructure = [5]
+    alpha = 0.01
+    lamb = 0.1
+    inputValues, expectedValues,inputLayerSize = preprocess("data/rice2.csv")
+
+    neuronStructure,thetaList = establishNetwork(inputLayerSize,hiddenLayerStructure)
+
+    learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,thetaList,lamb,alpha)
+
+
+#########################################################################

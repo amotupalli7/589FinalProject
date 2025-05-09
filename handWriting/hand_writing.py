@@ -29,11 +29,11 @@ if __name__ == "__main__":
     # print("Class:", digits_dataset_y[digit_to_show]) 
 
 
-    # data = pd.read_csv("data/handwriting2.csv")
+    # data = pd.read_csv("data/rice2.csv")
 
     # RUN KNN on dataset
-        # kValues = [x for x in range(1, 51, 2)] # k = 5 is the best
-        # runKNN(kValues,data,folds)
+    # kValues = [5]#[x for x in range(1, 51, 2)] # k = 5 is the best
+    # runKNN(kValues,data,folds)
 
     # RUN Neural Nets on dataset
 
