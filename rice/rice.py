@@ -17,8 +17,6 @@ if __name__ == "__main__":
     # runKNN(kValues,data,folds,"Rice Dataset")
 
     # RUN Neural Nets on dataset
-
-
     k = 10
     hiddenLayerStructure = [7]
     alpha = 0.01

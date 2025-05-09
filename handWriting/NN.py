@@ -21,11 +21,10 @@ def loadData(digits_dataset_x,digits_dataset_y):
     data = np.hstack((digits_dataset_x, Y_encoded))
     print(data)
 
-    # Create column names: x0, x1, ..., xN, y
     num_features = digits_dataset_x.shape[1]
     num_classes = Y_encoded.shape[1]
     column_names = [f"x{i}" for i in range(num_features)] + [f"y{i}" for i in range(num_classes)]
-    # Create DataFrame with custom headers
+
     df = pd.DataFrame(data, columns=column_names)
     df.to_csv("data/handwriting.csv",index=False)
 
@@ -38,10 +37,10 @@ def preprocess(fileName, hasCategorical: bool = False):
     # X = df.iloc[:, :-1]
     # y = df.iloc[:, -1]
 
-    # Select feature columns (those starting with 'x')
+    
     X = df.loc[:, df.columns.str.startswith('x')]
 
-    # Select label columns (those starting with 'y')
+
     y = df.loc[:, df.columns.str.startswith('y')]
 
     if hasCategorical:
@@ -54,14 +53,14 @@ def preprocess(fileName, hasCategorical: bool = False):
         XCatEncoded_df = pd.DataFrame(XCatEncoded, columns=encoder.get_feature_names_out(cat_cols))
         
         XNum = X[num_cols]
-        XNumNormalized = normalize(XNum)#(XNum - XNum.min(axis=0)) / (XNum.max(axis=0) - XNum.min(axis=0)) # normalize
+        XNumNormalized = normalize(XNum) 
         XNumNormalized_df = pd.DataFrame(XNumNormalized, columns=num_cols)
         
         
         XFinal = pd.concat([XNumNormalized_df.reset_index(drop=True), XCatEncoded_df], axis=1)
     else:
         
-        XNormalized = normalize(X) #(X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
+        XNormalized = normalize(X)
         XFinal = pd.DataFrame(XNormalized, columns=X.columns)
 
     inputLayerSize = XFinal.shape[1]
@@ -162,7 +161,7 @@ def calculateDeltas(thetaList, a_values, actual_y): # returns deltas from start 
     deltas = []
 
     # output layer delta
-    outputDelta = a_values[-1] - np.array(actual_y).reshape(1,-1)  # shape (2,)
+    outputDelta = a_values[-1] - np.array(actual_y).reshape(1,-1) 
     deltas.insert(0,outputDelta)
 
     # Hidden layer deltas
@@ -182,16 +181,12 @@ def calculateDeltas(thetaList, a_values, actual_y): # returns deltas from start 
 def calculateGradients(delta_values,a_values,thetaList,lamb,n): # returns gradients from start to end
 
     gradients = []
-    regGradient = 0
 
     for i in range(len(thetaList)):
 
         a = a_values[i].reshape(1,-1)
         delta_above = delta_values[i].T
         gradient = delta_above @ a 
-        # regGradient = lamb * thetaList[i]
-        # regGradient[:, 0] = 0
-        # gradient = gradient + ((1/n)*regGradient)
         gradients.append(gradient)
 
     return gradients
@@ -242,7 +237,8 @@ def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,the
     batchSize = 20
     iterations = []
     J = []
-    # stopping criteria is 500 iterations
+
+    # stopping criteria is 350 iterations
     for epoch in range(0,350):
 
         iterations.append(epoch)
@@ -266,46 +262,16 @@ def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,the
                 # check for stopping criteria
                 # forward propagate
                 activations, _ = forwardPropInstance(neuronStructure,currentTheta,xi)
-                # print(activations)
 
                 # calculate delta values for output layer and hidden layers
                 deltaValues = calculateDeltas(currentTheta,activations,yi)
-                # print(deltaValues)
 
                 # calculate and update gradient
                 gradients = calculateGradients(deltaValues,activations,currentTheta,lamb,n)
                 batchGradients.append(gradients)
 
-
-            # avgGradients = []
-            # for layer in range(len(currentTheta)):
-            #     layerGrads = [g[layer] for g in batchGradients]
-            #     avg = sum(layerGrads) / len(layerGrads)
-            #     avgGradients.append(avg)
-            # calculate final regularized gradient
-            # updates weights of each layer based on the gradient
             regGradients = getRegularizedGradients(batchGradients,currentTheta,lamb,batchSize)
-
-            # update weights with new theta
             currentTheta = updateWeight(currentTheta,regGradients,alpha)
-            # print(f"\n{currentTheta[-1]}")
-
-            # call forward propogation
-
-### UNCOMENT HERE FOR J VALUES
-        # errors = []
-        # for x,y in zip(XTest,yTest):
-        #     finalActivations,_ = forwardPropInstance(neuronStructure,currentTheta,x)
-        #     y_pred = finalActivations[-1]
-        #     error = getErrorRegularized(y,y_pred,lamb,thetaList,n)
-        #     errors.append(error)
-        # errors = np.array(errors)
-        # finalError = np.mean(errors)
-        # print(finalError)
-        # J.append(finalError)
-
-
-
 
     return currentTheta,iterations,J # return final updated weight
     
@@ -329,6 +295,7 @@ def runNeuralNetwork(dataFile):
 
     # learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,outputLayerSize,thetaList,lamb,alpha)
     # exit()
+    
     # xTrain = inputValues#.to_numpy()
     # yTrain = expectedValues#.to_numpy()
 
