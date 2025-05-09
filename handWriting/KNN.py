@@ -74,7 +74,7 @@ def normalize(dataset):
     dataset = (dataset - min) / denom
     return dataset
 
-########################################################################
+############################################################################################################
 def createFolds(data, numFolds):
 
     # Combine input and labels for stratification

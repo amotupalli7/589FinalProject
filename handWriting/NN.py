@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from pandas import *
 import os,sys
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
 from KNN import normalize
 import matplotlib.pyplot as plt
@@ -60,7 +61,7 @@ def preprocess(fileName, hasCategorical: bool = False):
         XFinal = pd.concat([XNumNormalized_df.reset_index(drop=True), XCatEncoded_df], axis=1)
     else:
         
-        XNormalized = normalize(X)#(X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
+        XNormalized = normalize(X) #(X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
         XFinal = pd.DataFrame(XNormalized, columns=X.columns)
 
     inputLayerSize = XFinal.shape[1]
@@ -228,12 +229,14 @@ def updateWeight(thetaList, gradients, alpha):
     return updatedTheta
 
 #########################################################################
-def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,thetaList,lamb,alpha):#,XTest,yTest):
+def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,thetaList,lamb,alpha):#XTest,yTest):
 
     inputArr = inputValues#.to_numpy()
     expectedArr = expectedValues#.to_numpy()
 
     n = len(expectedArr)
+    print(len(inputArr))
+    print(n)
 
     currentTheta = thetaList
     batchSize = 20
@@ -314,18 +317,18 @@ def outputLabel(activations):
     return np.argmax(activations[-1])
 
 #########################################################################
-
-
 def runNeuralNetwork(dataFile):
     # TODO work here
-    hiddenLayerStructure = [10]
-    alpha = 0.1
-    lamb = 0.03
-    k = 5
+    hiddenLayerStructure = [16]
+    alpha = 0.01
+    lamb = 0.01
+    k = 3
 
     inputValues, expectedValues,inputLayerSize,outputLayerSize = preprocess(dataFile)
     neuronStructure, thetaList = establishNetwork(inputLayerSize,outputLayerSize,hiddenLayerStructure)
 
+    # learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,outputLayerSize,thetaList,lamb,alpha)
+    # exit()
     # xTrain = inputValues#.to_numpy()
     # yTrain = expectedValues#.to_numpy()
 
@@ -387,7 +390,7 @@ def runNeuralNetwork(dataFile):
         fScores.append(scores[1])
 
     # plt.figure(figsize=(10, 6))
-    # plt.plot(x, y, marker='o', linestyle='-', label='Cost vs Iteration')
+    # plt.plot(iterations, J, marker='o', linestyle='-', label='Cost vs Iteration')
 
     # plt.xlabel('Iteration')
     # plt.ylabel('J (Cost)')
@@ -408,3 +411,46 @@ def runNeuralNetwork(dataFile):
     print(f"Accuracy: {finalAccuracy}")
     print(f"FScore: {finalFScore}")
 
+#########################################################################
+def learningCurve(inputValues,expectedValues,neuronStructure,inputLayerSize,outputLayerSize,thetaList,lamb,alpha):
+
+
+    X_train, X_test, Y_train, Y_test = train_test_split(inputValues, expectedValues, test_size=0.2)
+    X_train = X_train.to_numpy()
+    Y_train = Y_train.to_numpy()
+    X_test = X_test.to_numpy()
+    Y_test = Y_test.to_numpy()
+
+
+    training_samples = list(range(5, len(X_train) + 1, 100))
+    J_arr = []
+
+    for sample in training_samples:
+        X_sample = X_train[:sample]
+        Y_sample = Y_train[:sample]
+
+        # neuronStructure, thetaList = establishNetwork(inputLayerSize,outputLayerSize,hiddenLayerStructure)
+        finalWeights,iterations,J = trainNeuralNet(X_sample,Y_sample,inputLayerSize,neuronStructure,thetaList,lamb,alpha)
+
+        
+        errors = []
+        for x, y in zip(X_test, Y_test):
+            print(f"y is: {y}")
+            # print(finalWeights)
+            activations, __ = forwardPropInstance(neuronStructure, finalWeights, x)
+            error = getErrorRegularized(y, activations[-1], lamb, finalWeights, len(X_test))
+            errors.append(error)
+
+        cost = np.mean(errors)
+        J_arr.append(cost)
+
+    plt.figure(figsize=(8, 5))
+    print(training_samples)
+    print(J_arr)
+    plt.plot(training_samples, J_arr, marker='o')
+    plt.xlabel('Number of Training Examples')
+    plt.ylabel('Cost (J) on Validation Set')
+    plt.title(f'Learning Curve')
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
