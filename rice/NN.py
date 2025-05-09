@@ -280,14 +280,6 @@ def trainNeuralNet(inputValues,expectedValues,inputLayerSize,neuronStructure,the
                 gradients = calculateGradients(deltaValues,activations,currentTheta,lamb,n)
                 batchGradients.append(gradients)
 
-
-            # avgGradients = []
-            # for layer in range(len(currentTheta)):
-            #     layerGrads = [g[layer] for g in batchGradients]
-            #     avg = sum(layerGrads) / len(layerGrads)
-            #     avgGradients.append(avg)
-            # calculate final regularized gradient
-            # updates weights of each layer based on the gradient
             regGradients = getRegularizedGradients(batchGradients,currentTheta,lamb,batchSize)
 
             # update weights with new theta
