@@ -132,15 +132,17 @@ def strat_cross_validation(X,Y,k):
 
     return X_folds, Y_folds
 
-def initialize_weights(num_neurons_layer):
+def initialize_weights(num_neurons_layer,seed=None):
+    if seed is not None:
+        np.random.seed(seed)
     weights = []
     for i in range(len(num_neurons_layer)-1):
         weights_layer = np.random.normal(0,1,size=(num_neurons_layer[i+1], num_neurons_layer[i]+1))
         weights.append(weights_layer)
     return weights
 
-def train_neural_network(X,Y,layer_sizes,alpha,lam,num_iterations,batch_size = 30):
-    weights = initialize_weights(layer_sizes) 
+def train_neural_network(X,Y,layer_sizes,alpha,lam,num_iterations,batch_size = 30,seed=None):
+    weights = initialize_weights(layer_sizes,seed=seed) 
     
     for i in range(num_iterations):
         #shuffle data
@@ -288,8 +290,7 @@ if __name__ == "__main__":
             X_sample = X_train[:sample]
             Y_sample = Y_train[:sample]
 
-            weights = train_neural_network(X_sample, Y_sample,layer_sizes=num_layers,alpha=alpha,lam=lam,num_iterations=num_iterations)
-
+            weights = train_neural_network(X_sample, Y_sample,layer_sizes=num_layers,alpha=alpha,lam=lam,num_iterations=num_iterations,seed=42)
             a_arr, _ = forward_prop(X_test, weights)
             cost = compute_final_cost(a_arr[-1], Y_test, lam, weights)
             J_arr.append(cost)
@@ -304,4 +305,4 @@ if __name__ == "__main__":
         plt.show()
 
 
-    learning_curve(X,Y,num_layers=[68,4, 1],lam=0.1,alpha=0.1,num_iterations=500)
+    learning_curve(X,Y,num_layers=[68,4,1],lam=0.1,alpha=0.01,num_iterations=1000)
